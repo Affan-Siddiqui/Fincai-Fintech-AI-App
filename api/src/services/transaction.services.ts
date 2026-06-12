@@ -5,7 +5,7 @@ import { NotFoundException } from "../utils/app-error";
 import { calculateNextOccurrence } from "../utils/helper";
 import { CreateTransactionType, UpdateTransactionType } from "../validators/transaction.validator";
 
-export const createTransactionService = async (body : CreateTransactionType, userId : string) => {
+export const createTransactionService = async (body: CreateTransactionType, userId: string) => {
     let nextRecurringDate: Date | null = null;
     const currentDate = new Date()
 
@@ -35,10 +35,10 @@ export const createTransactionService = async (body : CreateTransactionType, use
 }
 
 export const getAllTransactionService = async (userId: string, filters: {
-        keyword: string | undefined,
-        type?: keyof typeof TransactionTypeEnum | undefined,
-        recurringStatus?: "RECURRING" | "NON_RECURRING" | undefined;
-    },
+    keyword: string | undefined,
+    type?: keyof typeof TransactionTypeEnum | undefined,
+    recurringStatus?: "RECURRING" | "NON_RECURRING" | undefined;
+},
     pagination: {
         pageSize: number;
         pageNumber: number;
@@ -50,7 +50,7 @@ export const getAllTransactionService = async (userId: string, filters: {
         userId,
     };
 
-    if(keyword) {
+    if (keyword) {
         filterConditions.$or = [
             { title: { $regex: keyword, $options: "i" } },
             { category: { $regex: keyword, $options: "i" } },
@@ -80,7 +80,7 @@ export const getAllTransactionService = async (userId: string, filters: {
         TransactionModel.countDocuments(filterConditions),
     ]);
 
-     const totalPages = Math.ceil(totalCount / pageSize);
+    const totalPages = Math.ceil(totalCount / pageSize);
 
     return {
         transations,
@@ -104,7 +104,7 @@ export const getTransactionByIdService = async (userId: string, transactionId: s
     return transaction;
 }
 
-export const duplicateTransactionService = async (userId : string, transactionId: string) => {
+export const duplicateTransactionService = async (userId: string, transactionId: string) => {
     const transaction = await TransactionModel.findOne({
         _id: transactionId,
         userId,
@@ -114,7 +114,7 @@ export const duplicateTransactionService = async (userId : string, transactionId
     const { _id, createdAt, updatedAt, isRecurring, recurringInterval, nextRecurringDate, ...transactionData } = transaction.toObject();
 
     console.log(transactionData);
-    
+
 
     const duplicatedTransaction = await TransactionModel.create(
         {
@@ -129,7 +129,7 @@ export const duplicateTransactionService = async (userId : string, transactionId
     return duplicatedTransaction;
 }
 
-export const updateTransactionService = async (userId : string, transactionId: string, body : UpdateTransactionType) => {
+export const updateTransactionService = async (userId: string, transactionId: string, body: UpdateTransactionType) => {
     const existingTransaction = await TransactionModel.findOne({
         _id: transactionId,
         userId,
@@ -174,3 +174,69 @@ export const updateTransactionService = async (userId : string, transactionId: s
 
     return existingTransaction;
 }
+
+export const deleteTransactionService = async (userId: string, transactionId: string) => {
+    const existingTransaction = await TransactionModel.findOne({
+        _id: transactionId,
+        userId,
+    });
+    if (!existingTransaction) throw new NotFoundException("Transaction not found");
+
+    const deleted = await TransactionModel.findByIdAndDelete({
+        _id: transactionId,
+        userId,
+    });
+    if (!deleted) throw new NotFoundException("Transaction not found");
+
+    return;
+}
+
+export const bulkDeleteTransactionService = async (
+    userId: string,
+    transactionIds: string[]
+) => {
+    const result = await TransactionModel.deleteMany({
+        _id: { $in: transactionIds },
+        userId,
+    });
+
+    if (result.deletedCount === 0)
+        throw new NotFoundException("No transations found");
+
+    return {
+        sucess: true,
+        deletedCount: result.deletedCount,
+    };
+};
+
+
+export const bulkTransactionService = async (
+    userId: string,
+    transactions: CreateTransactionType[]
+) => {
+    if (!transactions.length) {
+        return {
+            insertedCount: 0,
+            success: true,
+        };
+    }
+
+    const now = new Date();
+
+    const docs = transactions.map((tx) => ({
+        ...tx,
+        userId,
+        lastProcesses: null,
+        createdAt: now,
+        updatedAt: now,
+    }));
+
+    const result = await TransactionModel.insertMany(docs, {
+        ordered: true,
+    });
+
+    return {
+        insertedCount: result.length,
+        success: true,
+    };
+};

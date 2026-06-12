@@ -1,7 +1,16 @@
 
 
 import { Router } from "express";
-import { createTransactionController, duplicateTransactionController, getAllTransactionController, getTransactionByIdController, updateTransactionController } from "../controllers/transaction.controller";
+import { 
+    bulkDeleteTransactionController, 
+    bulkTransactionController, 
+    createTransactionController,
+    deleteTransactionController,
+    duplicateTransactionController,
+    getAllTransactionController,
+    getTransactionByIdController, 
+        updateTransactionController
+} from "../controllers/transaction.controller";
 
 
 const transactionRoute = Router();
@@ -10,8 +19,12 @@ transactionRoute.post("/create", createTransactionController);
 transactionRoute.get("/all", getAllTransactionController);
 transactionRoute.get("/:id", getTransactionByIdController);
 
-transactionRoute.put("/duplicate/:id", duplicateTransactionController);
+transactionRoute.post("/duplicate/:id", duplicateTransactionController);
 transactionRoute.put("/update/:id", updateTransactionController);
+transactionRoute.post("/bulk", bulkTransactionController);
+
+transactionRoute.delete("/delete/:id", deleteTransactionController);
+transactionRoute.delete("/bulk-delete", bulkDeleteTransactionController);
 
 
 export default transactionRoute;

@@ -1,8 +1,17 @@
 import { HTTPSTATUS } from "../config/http.config";
 import { asyncHandler } from "../middleware/asyncHandler.middleware";
-import { createTransactionSchema, transactionIdSchema, updateTransactionSchema } from "../validators/transaction.validator";
+import { bulkDeleteTransactionSchema, bulkTransactionSchema, createTransactionSchema, transactionIdSchema, updateTransactionSchema } from "../validators/transaction.validator";
 import { Request, Response } from "express";
-import { createTransactionService, duplicateTransactionService, getAllTransactionService, getTransactionByIdService, updateTransactionService } from "../services/transaction.services";
+import { 
+  bulkDeleteTransactionService,
+  bulkTransactionService,
+  createTransactionService, 
+  deleteTransactionService, 
+  duplicateTransactionService, 
+  getAllTransactionService, 
+  getTransactionByIdService, 
+  updateTransactionService
+} from "../services/transaction.services";
 import { TransactionTypeEnum } from "../enums/transaction.enum";
 
 
@@ -12,9 +21,9 @@ export const createTransactionController = asyncHandler(
     const userId = req.user?._id?.toString();
 
     if (!userId) {
-        return res.status(HTTPSTATUS.BAD_REQUEST).json({
-            message: "User ID is missing",
-        });
+      return res.status(HTTPSTATUS.BAD_REQUEST).json({
+        message: "User ID is missing",
+      });
     }
 
     const transaction = await createTransactionService(body, userId);
@@ -52,7 +61,7 @@ export const getAllTransactionController = asyncHandler(
     };
 
     console.log(userId, filters, pagination);
-    
+
     const result = await getAllTransactionService(userId, filters, pagination);
 
     return res.status(HTTPSTATUS.OK).json({
@@ -85,13 +94,13 @@ export const getTransactionByIdController = asyncHandler(
 
 export const duplicateTransactionController = asyncHandler(
   async (req: Request, res: Response) => {
-    const userId = req.user?._id?.toString(); 
+    const userId = req.user?._id?.toString();
 
     if (!userId) {
       return res.status(HTTPSTATUS.BAD_REQUEST).json({
         message: "User ID is missing",
       });
-    }  
+    }
 
     const transactionId = transactionIdSchema.parse(req.params.id);
 
@@ -115,7 +124,7 @@ export const updateTransactionController = asyncHandler(
       return res.status(HTTPSTATUS.BAD_REQUEST).json({
         message: "User ID is missing",
       });
-    }  
+    }
 
     const transactionId = transactionIdSchema.parse(req.params.id);
     const body = updateTransactionSchema.parse(req.body);
@@ -133,3 +142,61 @@ export const updateTransactionController = asyncHandler(
 
   }
 )
+
+export const deleteTransactionController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = req.user?._id?.toString();
+
+    if (!userId) {
+      return res.status(HTTPSTATUS.BAD_REQUEST).json({
+        message: "User ID is missing",
+      });
+    }
+
+    const transactionId = transactionIdSchema.parse(req.params.id);
+    await deleteTransactionService(userId, transactionId);
+
+    return res.status(HTTPSTATUS.OK).json({
+      message: "Transaction deleted successfully",
+    });
+  }
+)
+
+export const bulkDeleteTransactionController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = req.user?._id?.toString();
+
+    if (!userId) {
+      return res.status(HTTPSTATUS.BAD_REQUEST).json({
+        message: "User ID is missing",
+      });
+    }
+
+    const { transactionIds } = bulkDeleteTransactionSchema.parse(req.body);
+    await bulkDeleteTransactionService(userId, transactionIds);
+
+    return res.status(HTTPSTATUS.OK).json({
+      message: "Transactions deleted successfully",
+    });
+  }
+)
+
+export const bulkTransactionController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = req.user?._id?.toString();
+    
+    if (!userId) {
+      return res.status(HTTPSTATUS.BAD_REQUEST).json({
+        message: "User ID is missing",
+      });
+    }
+
+    const { transactions } = bulkTransactionSchema.parse(req.body);
+    const result = await bulkTransactionService(userId, transactions);
+
+    return res.status(HTTPSTATUS.OK).json({
+      message: "Bulk transaction inserted successfully",
+      ...result,
+    });
+  }
+);
