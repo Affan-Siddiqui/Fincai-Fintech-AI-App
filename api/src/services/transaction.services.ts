@@ -226,9 +226,10 @@ export const bulkTransactionService = async (
     const docs = transactions.map((tx) => ({
         ...tx,
         userId,
+        nextRecurringDate: null,
         lastProcesses: null,
         createdAt: now,
-        updatedAt: now,
+        updatedAt: now,         
     }));
 
     const result = await TransactionModel.insertMany(docs, {
